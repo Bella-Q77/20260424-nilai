@@ -706,7 +706,7 @@
             selectHour.innerHTML = '<option value="">请选择</option>';
             
             for (let i = 0; i < 24; i++) {
-                const isDisabled = isToday && i <= currentHour;
+                const isDisabled = isToday && i < currentHour;
                 const option = document.createElement('option');
                 option.value = i;
                 option.textContent = String(i).padStart(2, '0') + '时';
@@ -716,7 +716,7 @@
                 selectHour.appendChild(option);
             }
             
-            if (currentValue && parseInt(currentValue) > currentHour) {
+            if (currentValue && parseInt(currentValue) >= currentHour) {
                 selectHour.value = currentValue;
             }
         }
@@ -852,25 +852,42 @@
             checkAndClosePicker();
         });
 
+        const fallbackBrowsers = [
+            { key: 'default', name: '系统默认浏览器' },
+            { key: 'chrome', name: 'Google Chrome' },
+            { key: 'edge', name: 'Microsoft Edge' },
+            { key: 'firefox', name: 'Mozilla Firefox' },
+            { key: '360', name: '360安全浏览器' }
+        ];
+
+        function renderBrowserList(browsers) {
+            const select = document.getElementById('browser');
+            select.innerHTML = '<option value="">请选择浏览器</option>';
+            
+            browsers.forEach(browser => {
+                const option = document.createElement('option');
+                option.value = browser.key;
+                option.textContent = browser.name;
+                select.appendChild(option);
+            });
+        }
+
         async function loadBrowsers() {
             try {
                 const response = await fetch(`${API_BASE}/browsers`);
+                if (!response.ok) {
+                    throw new Error('服务器响应错误');
+                }
                 const data = await response.json();
                 
-                if (data.success) {
-                    const select = document.getElementById('browser');
-                    select.innerHTML = '<option value="">请选择浏览器</option>';
-                    
-                    data.browsers.forEach(browser => {
-                        const option = document.createElement('option');
-                        option.value = browser.key;
-                        option.textContent = browser.name;
-                        select.appendChild(option);
-                    });
+                if (data.success && data.browsers && data.browsers.length > 0) {
+                    renderBrowserList(data.browsers);
+                } else {
+                    renderBrowserList(fallbackBrowsers);
                 }
             } catch (error) {
                 console.error('加载浏览器列表失败:', error);
-                showAlert('无法加载浏览器列表，请刷新页面重试', 'error');
+                renderBrowserList(fallbackBrowsers);
             }
         }
 
